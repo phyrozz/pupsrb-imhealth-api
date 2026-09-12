@@ -12,12 +12,13 @@ def success(body, status_code=200):
     }
 
 
-def error(message, status_code=500):
+def error(message, status_code=500, **details):
+    body = {"message": message, **details}
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps({"message": message}),
+        "body": json.dumps(body),
     }

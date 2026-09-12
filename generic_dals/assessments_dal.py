@@ -36,6 +36,31 @@ class AssessmentsDAL(BaseDAL):
         )
         return row["responses"] if row else None
 
+    def acquire_submission_lock(self, user_id: str):
+        """Serialize one student's submissions inside the current transaction."""
+        self._fetch_one(
+            "SELECT pg_advisory_xact_lock(hashtext(%s)) AS locked",
+            (str(user_id),),
+        )
+
+    def get_cooldown_days(self):
+        row = self._fetch_one(
+            "SELECT value FROM public.settings WHERE key = %s",
+            ("assessment_cooldown_days",),
+        )
+        return row["value"] if row else None
+
+    def get_next_submission_at(self, user_id: str, cooldown_days: int):
+        row = self._fetch_one(
+            """
+            SELECT MAX(created_at) + make_interval(days => %s) AS next_available_at
+            FROM public.assessments
+            WHERE user_id = %s
+            """,
+            (cooldown_days, user_id),
+        )
+        return row["next_available_at"] if row else None
+
     def list_assessments(self, search, scenario, status, page_size, page):
         return self._fetch_all(
             "SELECT * FROM get_assessments_table(%s, %s, %s, %s, %s)",

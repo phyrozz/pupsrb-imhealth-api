@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 import types
@@ -37,6 +38,7 @@ sys.modules["boto3"] = boto3
 create_details = importlib.import_module("services.students.create_personal_details")
 update_details = importlib.import_module("services.students.update_personal_details")
 submit_assessment = importlib.import_module("services.assessments.submit_assessment")
+assessment_availability = importlib.import_module("services.assessments.get_assessment_availability")
 post_confirmation = importlib.import_module("services.auth.post_confirmation")
 
 
@@ -61,6 +63,8 @@ class ProfileIdentityTests(unittest.TestCase):
         self.profile.get_by_username.return_value = self.profile.ensure_email_profile.return_value
         self.details = Mock()
         self.assessments = Mock()
+        self.assessments.get_cooldown_days.return_value = "7"
+        self.assessments.get_next_submission_at.return_value = None
         self.assessments.get_latest_responses.return_value = None
         self.auth = Mock()
         self.patches = [
@@ -73,6 +77,10 @@ class ProfileIdentityTests(unittest.TestCase):
             patch.object(submit_assessment, "get_db_connection", return_value=self.conn),
             patch.object(submit_assessment, "ProfilesDAL", return_value=self.profile),
             patch.object(submit_assessment, "AssessmentsDAL", return_value=self.assessments),
+            patch.object(submit_assessment, "send_submission_confirmation"),
+            patch.object(assessment_availability, "get_db_connection", return_value=self.conn),
+            patch.object(assessment_availability, "ProfilesDAL", return_value=self.profile),
+            patch.object(assessment_availability, "AssessmentsDAL", return_value=self.assessments),
             patch.object(post_confirmation, "get_db_connection", return_value=self.conn),
             patch.object(post_confirmation, "AuthDAL", return_value=self.auth),
         ]
@@ -121,6 +129,47 @@ class ProfileIdentityTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 201)
         self.assessments.get_latest_responses.assert_called_once_with("internal-profile-id")
         self.assertEqual(self.assessments.create_assessment.call_args.args[0], "internal-profile-id")
+
+    def test_assessment_cooldown_returns_next_available_time_without_writing(self):
+        self.assessments.get_next_submission_at.return_value = datetime.now(timezone.utc) + timedelta(days=1)
+
+        response = submit_assessment.handler(authenticated_event({"responses": ["Not at all"] * 23}), None)
+        body = json.loads(response["body"])
+
+        self.assertEqual(response["statusCode"], 429)
+        self.assertIn("next_available_at", body)
+        self.assessments.create_assessment.assert_not_called()
+
+    def test_assessment_requires_a_configured_positive_cooldown(self):
+        self.assessments.get_cooldown_days.return_value = None
+
+        response = submit_assessment.handler(authenticated_event({"responses": ["Not at all"] * 23}), None)
+
+        self.assertEqual(response["statusCode"], 503)
+        self.assessments.create_assessment.assert_not_called()
+
+    def test_assessment_rejects_a_non_integer_cooldown_setting(self):
+        self.assessments.get_cooldown_days.return_value = "one week"
+
+        response = submit_assessment.handler(authenticated_event({"responses": ["Not at all"] * 23}), None)
+
+        self.assertEqual(response["statusCode"], 503)
+        self.assessments.create_assessment.assert_not_called()
+
+    def test_assessment_availability_exposes_the_cooldown_to_the_student(self):
+        response = assessment_availability.handler(authenticated_event(), None)
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(json.loads(response["body"]), {
+            "available": True,
+            "next_available_at": None,
+        })
+
+        self.assessments.get_next_submission_at.return_value = datetime.now(timezone.utc) + timedelta(days=1)
+        response = assessment_availability.handler(authenticated_event(), None)
+        body = json.loads(response["body"])
+        self.assertEqual(response["statusCode"], 200)
+        self.assertFalse(body["available"])
+        self.assertIn("next_available_at", body)
 
     def test_post_confirmation_upserts_profile_by_normalized_email(self):
         event = {"userName": "fallback@example.edu", "request": {"userAttributes": {

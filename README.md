@@ -64,6 +64,21 @@ The designated baseline still makes `profiles.id` depend on Supabase `auth.users
 before deploying this provisioning flow. Existing profile IDs and their dependent data
 must be preserved. Neither deployment nor patch application is established by offline tests.
 
+## Assessment cooldown and confirmation email
+
+Student assessment submission reads `public.settings.assessment_cooldown_days` as a
+string and validates it as a positive whole number. The generic settings table can
+therefore support other value types in the future. A per-student database transaction
+lock prevents repeat submissions during the
+configured cooldown. The initial setting is seven days. Review and manually apply
+[the cooldown settings patch](sql/20260913_01_assessment_cooldown_settings.sql) after
+the internal identity patch. Changing the setting later requires only a database
+setting update; it does not require an API deployment.
+
+After a successful submission, the assessments service sends a confirmation email
+through SES using `SES_FROM_EMAIL`, resolved from `/pupsrb-imhealth/dev/ses/from_email`.
+The message includes the next available assessment time in Philippine time.
+
 ## AWS Services Used
 
 - **Lambda + API Gateway** — API endpoints

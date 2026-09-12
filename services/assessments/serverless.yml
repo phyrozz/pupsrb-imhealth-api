@@ -28,6 +28,25 @@ package:
     - "../../generic_dals/**"
 
 functions:
+  getAssessmentAvailability:
+    handler: get_assessment_availability.handler
+    events:
+      - http:
+          path: /assessments/availability
+          method: get
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.studentAuthorizerId}
+
   submitAssessment:
     handler: submit_assessment.handler
     events:
