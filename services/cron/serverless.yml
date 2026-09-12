@@ -1,0 +1,46 @@
+service: pupsrb-imhealth-cron
+
+custom:
+  config: ${file(../../environments/${opt:stage}.config.yml)}
+  pythonRequirements:
+    pythonBin: python
+    slim: true
+
+provider:
+  name: aws
+  runtime: python3.14
+  architecture: x86_64
+  region: ${self:custom.config.region}
+  environment: ${self:custom.config.environment}
+  layers: ${self:custom.config.layers}
+  apiGateway: ${self:custom.config.apiGateway}
+  iam:
+    role: ${self:custom.config.lambdaRoleArn}
+
+package:
+  individually: true
+  patterns:
+    - "!node_modules/**"
+    - "!.serverless/**"
+    - "../../constants/**"
+    - "../../utils/**"
+    - "../../models/**"
+    - "../../generic_dals/**"
+
+functions:
+  taskRunner:
+    handler: task_runner.handler
+    description: Triggers ECS Fargate task to run cron business logic
+    events:
+      - http:
+          path: /task-runner
+          method: post
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true

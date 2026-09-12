@@ -1,0 +1,37 @@
+service: pupsrb-imhealth-auth
+
+custom:
+  config: ${file(../../environments/${opt:stage}.config.yml)}
+  pythonRequirements:
+    pythonBin: python
+    slim: true
+
+provider:
+  name: aws
+  runtime: python3.14
+  architecture: x86_64
+  region: ${self:custom.config.region}
+  environment: ${self:custom.config.environment}
+  layers: ${self:custom.config.layers}
+  apiGateway: ${self:custom.config.apiGateway}
+  iam:
+    role: ${self:custom.config.lambdaRoleArn}
+
+package:
+  individually: true
+  patterns:
+    - "!node_modules/**"
+    - "!.serverless/**"
+    - "../../constants/**"
+    - "../../utils/**"
+    - "../../models/**"
+    - "../../generic_dals/**"
+
+functions:
+  preSignUp:
+    handler: pre_sign_up.handler
+    description: Cognito Pre Sign-Up trigger — auto-confirms student sign-ups
+
+  postConfirmation:
+    handler: post_confirmation.handler
+    description: Cognito Post Confirmation trigger — creates profile row

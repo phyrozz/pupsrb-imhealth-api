@@ -1,0 +1,37 @@
+stage: dev
+region: ap-southeast-1
+logLevel: DEBUG
+corsOrigin: https://pupsrb-imhealth.vercel.app
+
+# SSM parameter paths — values are stored in AWS Parameter Store
+# Create these under /pupsrb-imhealth/dev/ in the AWS Console
+ssmPrefix: /pupsrb-imhealth/dev
+
+authorizerId: ${ssm:/pupsrb-imhealth/dev/apigw/authorizer_id}
+studentAuthorizerId: ${ssm:/pupsrb-imhealth/dev/apigw/student_authorizer_id}
+userPoolId: ${ssm:/pupsrb-imhealth/dev/cognito/user_pool_id}
+lambdaRoleArn: ${ssm:/pupsrb-imhealth/dev/iam/lambda_role_arn}
+ecsTaskExecutionRoleArn: ${ssm:/pupsrb-imhealth/dev/iam/ecs_task_execution_role_arn}
+ecsTaskRoleArn: ${ssm:/pupsrb-imhealth/dev/iam/ecs_task_role_arn}
+
+apiGateway:
+  restApiId: ${ssm:/pupsrb-imhealth/dev/apigw/rest_api_id}
+  restApiRootResourceId: ${ssm:/pupsrb-imhealth/dev/apigw/rest_api_root_resource_id}
+
+layers:
+  - arn:aws:lambda:ap-southeast-1:770693421928:layer:Klayers-p314-psycopg2-binary:2
+  - arn:aws:lambda:ap-southeast-1:770693421928:layer:Klayers-p314-psycopg:6
+
+environment:
+  DB_HOST: ${ssm:/pupsrb-imhealth/dev/db/host}
+  DB_PORT: ${ssm:/pupsrb-imhealth/dev/db/port}
+  DB_NAME: ${ssm:/pupsrb-imhealth/dev/db/name}
+  DB_USER: ${ssm:/pupsrb-imhealth/dev/db/user}
+  DB_PASSWORD: ${ssm:/pupsrb-imhealth/dev/db/password}
+  S3_BUCKET_NAME: ${ssm:/pupsrb-imhealth/dev/s3/bucket_name}
+  SES_FROM_EMAIL: ${ssm:/pupsrb-imhealth/dev/ses/from_email}
+  CRON_SECRET: ${ssm:/pupsrb-imhealth/dev/cron/secret}
+  APP_URL: https://pupsrb-imhealth.vercel.app
+  CLUSTER: ${ssm:/pupsrb-imhealth/dev/ecs/cluster}
+  SUBNETS: ${ssm:/pupsrb-imhealth/dev/ecs/subnets}
+  SECURITY_GROUPS: ${ssm:/pupsrb-imhealth/dev/ecs/security_groups}
