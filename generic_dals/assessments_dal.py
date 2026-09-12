@@ -29,6 +29,13 @@ class AssessmentsDAL(BaseDAL):
         self.db.commit()
         return {"assessment": assessment, "apriori_result": apriori}
 
+    def get_latest_responses(self, user_id: str):
+        row = self._fetch_one(
+            "SELECT responses FROM assessments WHERE user_id = %s ORDER BY created_at DESC LIMIT 1",
+            (user_id,),
+        )
+        return row["responses"] if row else None
+
     def list_assessments(self, search, scenario, status, page_size, page):
         return self._fetch_all(
             "SELECT * FROM get_assessments_table(%s, %s, %s, %s, %s)",

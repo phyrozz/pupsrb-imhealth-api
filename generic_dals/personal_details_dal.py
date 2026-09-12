@@ -27,7 +27,33 @@ class PersonalDetailsDAL(BaseDAL):
         )
 
     def create(self, data: dict):
-        return self.insert(data)
+        return self._execute_write(
+            """
+            INSERT INTO personal_details
+                (user_id, email, first_name, middle_name, last_name, name_suffix,
+                 student_number, birth_date, program_id, year, marital_status_id, is_working_student)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (user_id) DO UPDATE
+            SET email = EXCLUDED.email,
+                first_name = EXCLUDED.first_name,
+                middle_name = EXCLUDED.middle_name,
+                last_name = EXCLUDED.last_name,
+                name_suffix = EXCLUDED.name_suffix,
+                student_number = EXCLUDED.student_number,
+                birth_date = EXCLUDED.birth_date,
+                program_id = EXCLUDED.program_id,
+                year = EXCLUDED.year,
+                marital_status_id = EXCLUDED.marital_status_id,
+                is_working_student = EXCLUDED.is_working_student
+            RETURNING *
+            """,
+            (
+                data["user_id"], data["email"], data["first_name"], data.get("middle_name") or None,
+                data["last_name"], data.get("name_suffix") or None, data["student_number"],
+                data["birth_date"], data.get("program_id") or None, data["year"],
+                data.get("marital_status_id") or None, bool(data.get("is_working_student", False)),
+            ),
+        )
 
     def update_by_user_id(self, user_id: str, data: dict):
         return self.update("user_id", user_id, data)

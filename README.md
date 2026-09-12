@@ -20,6 +20,50 @@ pupsrb-imhealth-api/
 └── requirements.txt
 ```
 
+## Program lookup for student sign-up
+
+The students service exposes public `GET /programs` before Cognito sign-up. It accepts optional `q`,
+`page` (default `1`), and `page_size` (default `25`, capped at `50`) query parameters. `q` searches
+program initials and names case-insensitively; blank `q` has no filter. Invalid `page` or `page_size`
+returns HTTP 400 with a safe message. A successful response is:
+
+```json
+{
+  "items": [{ "id": 1, "initial": "BSIT", "name": "Bachelor of Science in Information Technology" }],
+  "page": 1,
+  "page_size": 25,
+  "total": 1,
+  "has_more": false
+}
+```
+
+Items are ordered by `initial`, `name`, then `id`. Failures return HTTP 500 with
+`{ "message": "Unable to load programs. Please try again later." }`.
+The route has the existing CORS configuration and no Cognito authorizer; other student routes retain their authorization.
+It reads only `id`, `initial`, and `name` from the existing `public.programs` table in `legacy/postgres_schema.sql`.
+That baseline permits anonymous program reads. No schema patch is required.
+
+Run the lookup's offline tests with `python -m unittest discover -s tests -p test_programs.py`.
+The tests use fake connections and block real database and AWS entry points before importing application code.
+
+## Student identity and onboarding
+
+Cognito authenticates students by email. The API resolves that trusted token email to
+`profiles.username` and uses the database's `profiles.id` for `personal_details`,
+assessment history, assessment inserts, and reminders. Cognito `sub` is not a database profile ID.
+New profiles store the normalized email in both `username` and `full_name`.
+
+After email confirmation and the first authenticated sign-in, the web app sends the
+pending registration details to `POST /students/personal-details`. This student-authorized
+endpoint provisions the profile when necessary, so onboarding does not depend on an
+attached Cognito post-confirmation trigger. Pending details are removed only after a
+successful save; assessment submission is blocked while saving or after a save failure.
+
+The designated baseline still makes `profiles.id` depend on Supabase `auth.users` and
+`auth.uid()`. Review and manually apply [the internal identity patch](sql/20260912_01_internal_profile_identity.sql)
+before deploying this provisioning flow. Existing profile IDs and their dependent data
+must be preserved. Neither deployment nor patch application is established by offline tests.
+
 ## AWS Services Used
 
 - **Lambda + API Gateway** — API endpoints

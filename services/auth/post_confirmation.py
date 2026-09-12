@@ -7,14 +7,17 @@ from generic_dals.auth_dal import AuthDAL
 
 
 def handler(event, context):
-    user_attrs = {a["Name"]: a["Value"] for a in event["request"]["userAttributes"]}
-    user_id = user_attrs.get("sub")
-    full_name = user_attrs.get("name") or user_attrs.get("email")
+    user_attrs = event["request"]["userAttributes"]
+    if not isinstance(user_attrs, dict):
+        raise ValueError("Cognito userAttributes must be an object")
+    email = (user_attrs.get("email") or event.get("userName") or "").strip().lower()
+    if not email:
+        raise ValueError("Cognito post-confirmation requires an email or username")
     is_student = user_attrs.get("custom:is_student", "true").lower() == "true"
 
     conn = get_db_connection()
     try:
-        AuthDAL(conn).create_profile_on_confirm(user_id, full_name, is_student)
+        AuthDAL(conn).create_profile_on_confirm(email, is_student)
     finally:
         conn.close()
 

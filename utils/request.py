@@ -25,6 +25,15 @@ def get_cognito_user_id(event):
     )
 
 
+def get_authenticated_username(event):
+    """Link database identities only through a verified Cognito email claim."""
+    claims = get_claims(event)
+    if str(claims.get("email_verified", "false")).lower() != "true":
+        return None
+    value = claims.get("email")
+    return value.strip().lower() if isinstance(value, str) and value.strip() else None
+
+
 def get_claims(event) -> dict:
     return (
         event.get("requestContext", {})
