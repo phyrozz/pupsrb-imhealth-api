@@ -35,7 +35,7 @@ functions:
     timeout: 30
     events:
       - schedule:
-          rate: cron(0 1 * * ? *)
+          rate: rate(1 hour)
           enabled: true
       - http:
           path: /schedule-assessment/task-runner
