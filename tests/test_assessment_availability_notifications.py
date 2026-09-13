@@ -97,9 +97,9 @@ class AssessmentAvailabilityNotificationTests(unittest.TestCase):
         self.assertEqual(result, {"sent": 0, "failed": 1})
         dal.mark_assessment_availability_notification_sent.assert_not_called()
 
-    def test_schedule_is_daily_at_0100_utc(self):
+    def test_schedule_runs_hourly(self):
         config = (API_ROOT / "services" / "schedule_assessment" / "serverless.yml").read_text()
-        self.assertIn("rate: cron(0 1 * * ? *)", config)
+        self.assertIn("rate: rate(1 hour)", config)
         self.assertIn("handler: task_runner.handler", config)
 
     def test_ecs_worker_uses_dedicated_main_entry_point(self):

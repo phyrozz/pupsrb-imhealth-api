@@ -1,12 +1,14 @@
 import sys
 import os
+import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
 from utils.response import success, error
-from utils.request import get_body, get_cognito_user_id, is_admin
+from utils.request import get_authenticated_username, get_body, get_cognito_user_id, is_admin
 from generic_dals.personal_details_dal import PersonalDetailsDAL
 
+logger = logging.getLogger(__name__)
 
 def handler(event, context):
     user_id = get_cognito_user_id(event)
@@ -14,11 +16,15 @@ def handler(event, context):
         return error("Unauthorized", 401)
     if not is_admin(event):
         return error("Forbidden", 403)
+    email = get_authenticated_username(event)
+    if not email:
+        return error("Unauthorized", 401)
 
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         dal = PersonalDetailsDAL(conn)
-        if not dal.is_admin(user_id):
+        if not dal.is_admin_by_email(email):
             return error("Forbidden", 403)
 
         body = get_body(event)
@@ -28,8 +34,11 @@ def handler(event, context):
 
         result = dal.import_csv(csv_data)
         return success(result)
-    except Exception as e:
-        conn.rollback()
-        return error(str(e))
+    except Exception:
+        logger.exception("Student CSV import failed")
+        if conn is not None:
+            conn.rollback()
+        return error("Unable to import students. Please try again later.")
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()

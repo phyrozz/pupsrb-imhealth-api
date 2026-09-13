@@ -64,6 +64,13 @@ class PersonalDetailsDAL(BaseDAL):
             (user_id,),
         ) is not None
 
+    def is_admin_by_email(self, email: str) -> bool:
+        """Check the baseline admins table without creating or changing profiles."""
+        return self._fetch_one(
+            "SELECT 1 FROM public.admins WHERE lower(email) = lower(%s)",
+            (email,),
+        ) is not None
+
     def import_csv(self, csv_data: str) -> dict:
         reader = csv.DictReader(io.StringIO(csv_data))
         inserted = 0
