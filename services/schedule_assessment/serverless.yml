@@ -1,0 +1,46 @@
+service: pupsrb-imhealth-schedule-assessment
+
+custom:
+  config: ${file(../../environments/${opt:stage}.config.yml)}
+  pythonRequirements:
+    pythonBin: python
+    slim: true
+
+provider:
+  name: aws
+  runtime: python3.14
+  architecture: x86_64
+  region: ${self:custom.config.region}
+  environment: ${self:custom.config.environment}
+  layers: ${self:custom.config.layers}
+  apiGateway: ${self:custom.config.apiGateway}
+  iam:
+    role: ${self:custom.config.lambdaRoleArn}
+
+package:
+  individually: true
+  patterns:
+    - "!node_modules/**"
+    - "!.serverless/**"
+    - "../../constants/**"
+    - "../../utils/**"
+    - "../../models/**"
+    - "../../generic_dals/**"
+
+functions:
+  taskRunner:
+    name: pupsrb-imhealth-schedule-assessment-${opt:stage, 'dev'}
+    handler: task_runner.handler
+    description: Starts the daily Fargate task that notifies eligible students about their next assessment.
+    timeout: 30
+    events:
+      - schedule:
+          rate: cron(0 1 * * ? *)
+          enabled: true
+      - http:
+          path: /schedule-assessment/task-runner
+          method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+    

@@ -1,0 +1,35 @@
+{
+  "family": "pupsrb-imhealth-schedule-assessment",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "__TASK_EXECUTION_ROLE_ARN__",
+  "taskRoleArn": "__TASK_ROLE_ARN__",
+  "containerDefinitions": [
+    {
+      "name": "pupsrb-imhealth-schedule-assessment",
+      "image": "__IMAGE_URI__",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/pupsrb-imhealth-schedule-assessment-dev",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        { "name": "APP_URL", "value": "https://pupsrb-imhealth.vercel.app" }
+      ],
+      "secrets": [
+        { "name": "DB_HOST", "valueFrom": "/pupsrb-imhealth/dev/db/host" },
+        { "name": "DB_PORT", "valueFrom": "/pupsrb-imhealth/dev/db/port" },
+        { "name": "DB_NAME", "valueFrom": "/pupsrb-imhealth/dev/db/name" },
+        { "name": "DB_USER", "valueFrom": "/pupsrb-imhealth/dev/db/user" },
+        { "name": "DB_PASSWORD", "valueFrom": "/pupsrb-imhealth/dev/db/password" },
+        { "name": "SES_FROM_EMAIL", "valueFrom": "/pupsrb-imhealth/dev/ses/from_email" }
+      ]
+    }
+  ]
+}

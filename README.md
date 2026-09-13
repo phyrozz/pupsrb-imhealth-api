@@ -79,6 +79,43 @@ After a successful submission, the assessments service sends a confirmation emai
 through SES using `SES_FROM_EMAIL`, resolved from `/pupsrb-imhealth/dev/ses/from_email`.
 The message includes the next available assessment time in Philippine time.
 
+The schedule-assessment service starts a Fargate worker every day at **01:00 UTC**. The worker
+reads the same cooldown setting, finds students whose latest assessment is now
+eligible, and sends one SES availability email per assessment. It uses the existing
+`assessment_reminders.reminder_sent` marker, which submission resets, so a student
+is not emailed again on subsequent days. The EventBridge-triggered Lambda only
+starts the task; Fargate performs the paginated student scan and email delivery,
+avoiding Lambda's 15-minute execution limit. The worker must be included in the
+`pupsrb-imhealth-schedule-assessment` ECS task image when this code is deployed. Its
+EventBridge Lambda entry point is `services/schedule_assessment/task_runner.py`; the
+Fargate container entry point is `services/schedule_assessment/main.py`.
+
+## ECS task deployment
+
+`deploy-ecs.ps1` and `deploy-ecs.sh` deploy an ECS task image for a service in
+the development account only. They create the ECR repository if necessary, push
+the service image as `:latest`, and always register a new Fargate task-definition
+revision that references that tag. They also create the service's CloudWatch log
+group if it is absent. They do not start a task.
+
+The scripts read the existing development task execution and task role ARNs from
+`/pupsrb-imhealth/dev/iam/ecs_task_execution_role_arn` and
+`/pupsrb-imhealth/dev/iam/ecs_task_role_arn`. They do not read database values.
+
+```powershell
+.\deploy-ecs.ps1 -ServiceName schedule_assessment
+```
+
+```bash
+./deploy-ecs.sh schedule_assessment
+```
+
+Each ECS service needs `services/<name>/Dockerfile` and
+`services/<name>/ecs-task-definition.json`. The schedule-assessment template supplies database
+and SES values to the container through SSM parameter references; the supplied
+execution role must be allowed to read those parameters, and its task role must
+allow SES delivery. Its logs are sent to `/ecs/pupsrb-imhealth-schedule-assessment-dev`.
+
 ## AWS Services Used
 
 - **Lambda + API Gateway** — API endpoints

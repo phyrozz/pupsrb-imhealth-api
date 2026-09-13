@@ -1,0 +1,11 @@
+.git
+.serverless
+**/.serverless
+**/__pycache__
+*.py[cod]
+tests
+sql
+schema.sql
+migrate_supabase_to_cognito.sql
+deploy.ps1
+deploy.sh
