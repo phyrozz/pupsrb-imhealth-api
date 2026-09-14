@@ -141,3 +141,45 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.config.authorizerId}
+
+  listCounselorWorkload:
+    handler: counselor_workload.list_handler
+    events:
+      - http:
+          path: /counselor-workload
+          method: get
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers: [Content-Type, Authorization, X-Amz-Date, X-Api-Key, X-Amz-Security-Token]
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+
+  claimCounselorWorkload:
+    handler: counselor_workload.claim_handler
+    events:
+      - http:
+          path: /counselor-workload/{assessment_id}/claim
+          method: post
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers: [Content-Type, Authorization, X-Amz-Date, X-Api-Key, X-Amz-Security-Token]
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+
+  updateCounselorWorkload:
+    handler: counselor_workload.update_handler
+    events:
+      - http:
+          path: /counselor-workload/{assessment_id}
+          method: put
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers: [Content-Type, Authorization, X-Amz-Date, X-Api-Key, X-Amz-Security-Token]
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}

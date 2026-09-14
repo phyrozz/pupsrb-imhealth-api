@@ -6,7 +6,7 @@ class PermissionsDAL(BaseDAL):
         super().__init__(conn, "public.admin_role_permissions")
 
     def identity(self, email):
-        rows = self._fetch_all("SELECT a.role_id, r.role_name FROM public.admins a JOIN public.admin_roles r ON r.id=a.role_id WHERE lower(trim(a.email))=%s", (email,))
+        rows = self._fetch_all("SELECT a.id AS admin_id, a.role_id, r.role_name FROM public.admins a JOIN public.admin_roles r ON r.id=a.role_id WHERE lower(trim(a.email))=%s", (email,))
         return rows[0] if len(rows) == 1 else None
 
     def permissions(self, role_id):

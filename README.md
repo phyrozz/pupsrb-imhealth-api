@@ -186,3 +186,18 @@ Read, insert, update, upload, download types are available for each module. A fl
 an action listed above; unsupported actions are not introduced. Browser PDF export is local,
 so download grants control the UI, and cannot prevent copying already-readable information.
 The status-email endpoint remains its existing placeholder and sends no real email.
+
+## Counselor workload
+
+Apply `sql/20260914_02_counselor_workload.sql` after the role-permissions patch and before
+deploying the Counselor Workload page. It adds an assignment record per submitted assessment;
+unassigned assessments have no workload row. Guidance counselors with `workload/read` and
+`workload/update` can view their queue, claim an unassigned assessment, and change the state
+of only their own items. `su_admin` can view all items and assign or reassign them to a
+guidance counselor. The states `assigned`, `in_review`, and `completed` describe workload
+progress only; they deliberately do not change the separate counseling status.
+
+The protected routes are `GET /counselor-workload`, `POST /counselor-workload/{assessment_id}/claim`,
+and `PUT /counselor-workload/{assessment_id}`. The user must manually verify the trusted
+application database role can access the new RLS-enabled table. No patch application or live
+database verification is performed locally.
