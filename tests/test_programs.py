@@ -162,7 +162,15 @@ class ProgramsTests(unittest.TestCase):
         self.assertIn("method: get", public_route)
         self.assertIn("cors:", public_route)
         self.assertNotIn("authorizer:", public_route)
-        self.assertEqual(config.count("authorizer:"), 5)
+        # Assert each protected route instead of a count that breaks when routes grow.
+        import re
+        routes = dict(re.findall(r"^  (\w+):\n(.*?)(?=^  \w+:\n|\Z)", config.split("functions:\n", 1)[1], re.M | re.S))
+        self.assertGreaterEqual(len(routes), 6)
+        for name, route in routes.items():
+            if name != "listPrograms":
+                with self.subTest(route=name):
+                    self.assertIn("authorizer:", route)
+                    self.assertIn("type: COGNITO_USER_POOLS", route)
 
 
 if __name__ == "__main__":

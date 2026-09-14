@@ -148,3 +148,41 @@ Each service is deployed independently:
 cd services/<service_name>
 serverless deploy --stage prod
 ```
+
+
+## Administrator module permissions
+
+Apply `sql/20260914_01_admin_module_permissions.sql` manually before deploying this code.
+The patch is pending until the user applies it. Its RLS configuration requires the trusted
+application database role to own/bypass RLS on the new tables and have appropriate SQL
+privileges; verify this manually. Missing tables or grants fail closed with an error.
+No database connections, cloud invocation, or SQL application were used for local verification.
+
+Verified Cognito email resolves exactly one `admins` row and its `admin_roles` role; client
+role claims do not grant privileges. Student own-record operations remain student-only and
+are outside this administrator matrix. Public program lookups and own profile/avatar actions
+remain outside the matrix. There are no new student administration CRUD endpoints.
+
+| Action | Required administrator grants |
+| --- | --- |
+| List/get student | students/read |
+| Import student CSV | students/upload and students/insert |
+| List/get assessment | assessments/read |
+| Change counseling status or existing email stub | assessments/update |
+| Dashboard aggregates | dashboard/read |
+| Named student's dashboard assessment trend | dashboard/read and assessments/read |
+| Browser report page/export | reports/read and reports/download, plus source endpoint grants |
+| View/edit permission matrix | permissions/read or permissions/update, and database su_admin role |
+
+`GET /admin/permissions/me` returns `{role_id, role_name, permissions}` with permission
+arrays keyed by module. `GET /admin/permissions` returns roles, modules, permission_types,
+and grants. `PUT /admin/permissions/roles/{role_id}` accepts
+`{grants: [{module_id, permission_type_id}]}` and replaces that role's grants atomically;
+empty arrays revoke all grants, duplicate pairs collapse, and unknown identifiers are rejected.
+Only `su_admin` manages the matrix; its own seeded permissions are immutable in the API to
+preserve recovery access. Other roles cannot receive permission-management grants.
+
+Read, insert, update, upload, download types are available for each module. A flag only gates
+an action listed above; unsupported actions are not introduced. Browser PDF export is local,
+so download grants control the UI, and cannot prevent copying already-readable information.
+The status-email endpoint remains its existing placeholder and sends no real email.

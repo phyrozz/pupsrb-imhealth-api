@@ -138,3 +138,62 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.config.authorizerId}
+
+  getMyPermissions:
+    handler: admin_permissions.handler
+    events:
+      - http:
+          path: /admin/permissions/me
+          method: get
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+
+
+  getPermissionMatrix:
+    handler: admin_permissions.handler
+    events:
+      - http:
+          path: /admin/permissions
+          method: get
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+
+
+  updateRolePermissions:
+    handler: admin_permissions.handler
+    events:
+      - http:
+          path: /admin/permissions/roles/{role_id}
+          method: put
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}

@@ -51,6 +51,9 @@ def admin_event(query_params=None):
 
 class ListAssessmentsTests(unittest.TestCase):
     def setUp(self):
+        guard = patch.object(list_assessments, "require_permission", return_value=None)
+        self.guard = guard.start()
+        self.addCleanup(guard.stop)
         self.conn = Mock()
         self.access_dal = Mock()
         self.access_dal.is_admin_by_email.return_value = True

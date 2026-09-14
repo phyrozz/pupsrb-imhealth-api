@@ -49,6 +49,7 @@ def authenticated_event(body=None):
             "sub": "cognito-subject-that-is-not-a-profile-id",
             "email": "Student@Example.edu",
             "email_verified": "true",
+            "custom:is_student": "true",
         }}},
     }
 

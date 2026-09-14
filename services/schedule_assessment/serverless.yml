@@ -34,9 +34,9 @@ functions:
     description: Starts the daily Fargate task that notifies eligible students about their next assessment.
     timeout: 30
     events:
-      - schedule:
-          rate: rate(1 hour)
-          enabled: true
+      # - schedule:
+      #     rate: rate(1 hour)
+      #     enabled: true
       - http:
           path: /schedule-assessment/task-runner
           method: get

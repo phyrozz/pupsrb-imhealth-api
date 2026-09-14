@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
+from utils.admin_permissions import require_permission
 from utils.response import success, error
 from utils.request import get_path_param, get_cognito_user_id, is_admin
 from generic_dals.personal_details_dal import PersonalDetailsDAL
@@ -17,6 +18,9 @@ def handler(event, context):
 
     conn = get_db_connection()
     try:
+        denied = require_permission(event, conn, "students", "read")
+        if denied:
+            return denied
         student = PersonalDetailsDAL(conn).get_by_user_id(get_path_param(event, "user_id"))
         if not student:
             return error("Student not found", 404)

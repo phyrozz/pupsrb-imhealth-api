@@ -52,6 +52,9 @@ def admin_event(query_params=None):
 
 class ListStudentsTests(unittest.TestCase):
     def setUp(self):
+        guard = patch.object(list_students, "require_permission", return_value=None)
+        self.guard = guard.start()
+        self.addCleanup(guard.stop)
         self.conn = Mock()
         self.dal = Mock()
         self.dal.is_admin_by_email.return_value = True
@@ -80,6 +83,7 @@ class ListStudentsTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 200)
         self.assertEqual(body, [{"user_id": "student-1"}])
         self.dal.is_admin_by_email.assert_called_once_with("admin@example.edu")
+        self.guard.assert_called_once_with(admin_event({"result_count": "2", "program": " BSIT ", "search": " Ada ", "page_size": "999", "page": "3"}), self.conn, "students", "read")
         self.dal.list_students.assert_called_once_with("2", "BSIT", "Ada", "100", "3")
         self.conn.close.assert_called_once_with()
 
@@ -151,6 +155,9 @@ class PersonalDetailsDALTests(unittest.TestCase):
 
 class ImportStudentsTests(unittest.TestCase):
     def setUp(self):
+        guard = patch.object(import_students, "require_permission", return_value=None)
+        self.guard = guard.start()
+        self.addCleanup(guard.stop)
         self.conn = Mock()
         self.dal = Mock()
         self.dal.is_admin_by_email.return_value = True
@@ -170,6 +177,7 @@ class ImportStudentsTests(unittest.TestCase):
 
         self.assertEqual(response["statusCode"], 200)
         self.dal.is_admin_by_email.assert_called_once_with("admin@example.edu")
+        self.assertEqual([call.args[-1] for call in self.guard.call_args_list], ["upload", "insert"])
         self.dal.import_csv.assert_called_once_with("student_number,first_name\n1,Ada")
 
     def test_import_denies_a_non_admin_without_processing_csv(self):

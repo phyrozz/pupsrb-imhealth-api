@@ -4,6 +4,7 @@ import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
+from utils.admin_permissions import require_permission
 from utils.response import success, error
 from utils.request import get_authenticated_username, get_cognito_user_id, is_admin
 from generic_dals.personal_details_dal import PersonalDetailsDAL
@@ -56,6 +57,9 @@ def handler(event, context):
     try:
         conn = get_db_connection()
         dal = PersonalDetailsDAL(conn)
+        denied = require_permission(event, conn, "students", "read")
+        if denied:
+            return denied
         # The baseline identifies administrators by email, while Cognito's sub
         # is intentionally not a database profile ID. This read has no mutation.
         if not dal.is_admin_by_email(email):

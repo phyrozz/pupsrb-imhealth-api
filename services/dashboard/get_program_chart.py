@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
+from utils.admin_permissions import require_permission
 from utils.response import success, error
 from utils.request import get_cognito_user_id, is_admin
 from generic_dals.dashboard_dal import DashboardDAL
@@ -17,6 +18,9 @@ def handler(event, context):
 
     conn = get_db_connection()
     try:
+        denied = require_permission(event, conn, "dashboard", "read")
+        if denied:
+            return denied
         rows = DashboardDAL(conn).get_program_chart()
         return success([dict(r) for r in rows])
     except Exception as e:

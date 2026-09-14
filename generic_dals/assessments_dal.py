@@ -121,20 +121,16 @@ class AssessmentsDAL(BaseDAL):
     def get_assessment_trend(self, scenario):
         return self._fetch_all("SELECT * FROM get_answered_assessments_trend(%s)", (scenario,))
 
-    def get_apriori_result(self, assessment_id, user_id):
+    def get_apriori_result(self, assessment_id, user_id, admin=False):
         return self._fetch_one(
             """
             SELECT ar.*, s.name AS scenario_name, cs.name AS counseling_status
             FROM apriori_results ar
             JOIN assessment_scenarios s ON s.id = ar.apriori_result
             LEFT JOIN counseling_statuses cs ON cs.id = ar.counseling_status_id
-            WHERE ar.assessment_id = %s AND (ar.user_id = %s OR EXISTS (
-                SELECT 1 FROM admins WHERE lower(email) = lower(
-                    (SELECT email FROM personal_details WHERE user_id = %s)
-                )
-            ))
+            WHERE ar.assessment_id = %s AND (%s OR ar.user_id = %s)
             """,
-            (assessment_id, user_id, user_id),
+            (assessment_id, admin, user_id),
         )
 
     def update_counseling_status(self, assessment_id, counseling_status_id):

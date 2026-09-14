@@ -4,6 +4,7 @@ from uuid import UUID
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
+from utils.admin_permissions import require_permission
 from utils.response import success, error
 from utils.request import get_authenticated_username, get_query_param, get_cognito_user_id, is_admin
 from generic_dals.assessments_dal import AssessmentsDAL
@@ -52,6 +53,9 @@ def handler(event, context):
 
     conn = get_db_connection()
     try:
+        denied = require_permission(event, conn, "assessments", "read")
+        if denied:
+            return denied
         # The Cognito pool claim only distinguishes a student pool from an admin
         # pool. Verify the account against the database's baseline admins table
         # before exposing all students' sensitive assessment history.

@@ -4,6 +4,7 @@ import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.db import get_db_connection
+from utils.admin_permissions import require_permission
 from utils.response import success, error
 from utils.request import get_authenticated_username, get_body, get_cognito_user_id, is_admin
 from generic_dals.personal_details_dal import PersonalDetailsDAL
@@ -23,6 +24,12 @@ def handler(event, context):
     conn = None
     try:
         conn = get_db_connection()
+        denied = require_permission(event, conn, "students", "upload")
+        if denied:
+            return denied
+        denied = require_permission(event, conn, "students", "insert")
+        if denied:
+            return denied
         dal = PersonalDetailsDAL(conn)
         if not dal.is_admin_by_email(email):
             return error("Forbidden", 403)
