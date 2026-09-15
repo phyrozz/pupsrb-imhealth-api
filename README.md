@@ -174,9 +174,10 @@ remain outside the matrix. There are no new student administration CRUD endpoint
 | Browser report page/export | reports/read and reports/download, plus source endpoint grants |
 | View/edit permission matrix | permissions/read or permissions/update, and database su_admin role |
 
-`GET /admin/permissions/me` returns `{role_id, role_name, permissions}` with permission
-arrays keyed by module. `GET /admin/permissions` returns roles, modules, permission_types,
-and grants. `PUT /admin/permissions/roles/{role_id}` accepts
+The dedicated `services/admin_permissions/` service provides `GET /role-permissions/me`,
+which returns `{role_id, role_name, permissions}` with permission arrays keyed by module.
+`GET /role-permissions` returns roles, modules, permission_types, and grants.
+`PUT /role-permissions/{role_id}` accepts
 `{grants: [{module_id, permission_type_id}]}` and replaces that role's grants atomically;
 empty arrays revoke all grants, duplicate pairs collapse, and unknown identifiers are rejected.
 Only `su_admin` manages the matrix; its own seeded permissions are immutable in the API to
@@ -201,3 +202,25 @@ The protected routes are `GET /counselor-workload`, `POST /counselor-workload/{a
 and `PUT /counselor-workload/{assessment_id}`. The user must manually verify the trusted
 application database role can access the new RLS-enabled table. No patch application or live
 database verification is performed locally.
+
+## Admin users
+
+Apply `sql/20260914_03_admin_users_module.sql` after the role-permissions patch. The Admin
+Users module is served by the dedicated `services/admin_users/` deployment service at
+`GET` and `POST /admin-users`. It lists
+administrators and creates a database administrator record plus a Cognito
+administrator user. Cognito sends the account email a temporary-password invitation. Creating
+an account requires `admin_users/insert`; listing requires `admin_users/read`. The matrix seeds
+all Admin Users permissions to `su_admin`; other roles can receive only the grants a super
+administrator explicitly gives them. The API still prevents non-super administrators from
+creating an `su_admin` account.
+
+Admin accounts are created only in the administrator Cognito user pool selected by the API
+Gateway authorizer. They do not need the student pool's `custom:is_student` attribute; the
+server treats its absence as an administrator claim.
+
+The Lambda execution role needs `cognito-idp:AdminCreateUser` and
+`cognito-idp:AdminDeleteUser` scoped to the configured administrator pool before deployment.
+`AdminDeleteUser` is used only to compensate if Cognito succeeds but creating the database
+administrator fails. This repository does not modify IAM, create Cognito users, apply SQL, or
+call live services during verification.

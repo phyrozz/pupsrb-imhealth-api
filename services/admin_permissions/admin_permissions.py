@@ -1,10 +1,12 @@
 import os
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+
 from generic_dals.permissions_dal import PermissionsDAL
 from utils.admin_permissions import admin_identity, require_permission
 from utils.db import get_db_connection
-from utils.request import get_body, get_cognito_user_id, get_authenticated_username, is_admin
+from utils.request import get_body, get_authenticated_username, get_cognito_user_id, is_admin
 from utils.response import success, error
 
 

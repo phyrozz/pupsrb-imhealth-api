@@ -23,6 +23,7 @@ layers:
   - arn:aws:lambda:ap-southeast-1:770693421928:layer:Klayers-p314-psycopg:6
 
 environment:
+  COGNITO_USER_POOL_ID: ${self:custom.config.userPoolId}
   DB_HOST: ${ssm:/pupsrb-imhealth/dev/db/host}
   DB_PORT: ${ssm:/pupsrb-imhealth/dev/db/port}
   DB_NAME: ${ssm:/pupsrb-imhealth/dev/db/name}

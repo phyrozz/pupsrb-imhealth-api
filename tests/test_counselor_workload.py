@@ -23,12 +23,12 @@ sys.modules["psycopg2"] = pg; sys.modules["psycopg2.extras"] = extras
 aws = types.ModuleType("boto3"); aws.client = aws.resource = aws.Session = forbidden; sys.modules["boto3"] = aws
 workload = importlib.import_module("services.assessments.counselor_workload")
 
-ASSESSMENT_ID = "00000000-0000-0000-0000-000000000001"
+ASSESSMENT_ID = 1
 COUNSELOR_ID = "00000000-0000-0000-0000-000000000002"
 
 class WorkloadHandlerTests(unittest.TestCase):
     def event(self, method="GET", scope="mine", body=None):
-        return {"queryStringParameters": {"scope": scope}, "pathParameters": {"assessment_id": ASSESSMENT_ID},
+        return {"queryStringParameters": {"scope": scope}, "pathParameters": {"assessment_id": str(ASSESSMENT_ID)},
                 "body": json.dumps(body) if body is not None else None, "httpMethod": method,
                 "requestContext": {"authorizer": {"claims": {"sub": "subject", "email": "counselor@example.edu", "email_verified": "true", "custom:is_student": "false"}}}}
 

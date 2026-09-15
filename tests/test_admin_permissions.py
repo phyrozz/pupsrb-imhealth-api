@@ -20,10 +20,10 @@ sys.modules["psycopg2"]=pg;sys.modules["psycopg2.extras"]=extra
 aws=types.ModuleType("boto3");aws.client=aws.resource=aws.Session=forbidden;sys.modules["boto3"]=aws
 from utils import admin_permissions as auth
 from generic_dals.permissions_dal import PermissionsDAL
-handler=importlib.import_module("services.students.admin_permissions")
+handler=importlib.import_module("services.admin_permissions.admin_permissions")
 
 def event():
-    return {"path":"/admin/permissions", "httpMethod":"GET", "requestContext":{"authorizer":{"claims":{"sub":"subject", "email":"ADMIN@EXAMPLE.EDU", "email_verified":"true", "custom:is_student":"false"}}}}
+    return {"path":"/role-permissions", "httpMethod":"GET", "requestContext":{"authorizer":{"claims":{"sub":"subject", "email":"ADMIN@EXAMPLE.EDU", "email_verified":"true", "custom:is_student":"false"}}}}
 
 class AuthorizationTests(unittest.TestCase):
     def setUp(self):

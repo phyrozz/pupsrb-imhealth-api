@@ -1,6 +1,5 @@
 import os
 import sys
-from uuid import UUID
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
@@ -16,10 +15,8 @@ VALID_STATUSES = {"assigned", "in_review", "completed"}
 
 
 def _assessment_id(event):
-    try:
-        return str(UUID(str(get_path_param(event, "assessment_id"))))
-    except (TypeError, ValueError, AttributeError):
-        return None
+    value = str(get_path_param(event, "assessment_id") or "").strip()
+    return int(value) if value.isdecimal() and int(value) > 0 else None
 
 
 def _workload_identity(event, conn, permission):

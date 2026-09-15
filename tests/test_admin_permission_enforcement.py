@@ -33,7 +33,7 @@ sys.modules["boto3"] = aws
 trend = importlib.import_module("services.dashboard.get_student_assessment_trend")
 result = importlib.import_module("services.assessments.get_apriori_result")
 authorization = importlib.import_module("utils.admin_permissions")
-manager = importlib.import_module("services.students.admin_permissions")
+manager = importlib.import_module("services.admin_permissions.admin_permissions")
 
 
 def event(student=False):
@@ -113,16 +113,16 @@ class PermissionEnforcementTests(unittest.TestCase):
              patch.object(manager, "PermissionsDAL", return_value=dal), \
              patch.object(authorization, "PermissionsDAL", return_value=dal):
             me = event()
-            me.update(path="/dev/admin/permissions/me", httpMethod="GET")
+            me.update(path="/dev/role-permissions/me", httpMethod="GET")
             response = manager.handler(me, None)
             self.assertEqual(response["statusCode"], 200)
             self.assertEqual(json.loads(response["body"]), {**identity, "permissions": dal.permissions.return_value})
-            me["path"] = "/dev/admin/permissions"
+            me["path"] = "/dev/role-permissions"
             self.assertEqual(json.loads(manager.handler(me, None)["body"]), matrix)
             for grants, expected in (([], []), ([{"module_id": 1, "permission_type_id": 1}] * 2, [(1, 1)])):
                 with self.subTest(grants=grants):
                     change = event()
-                    change.update(path="/admin/permissions/roles/1", httpMethod="PUT", body=json.dumps({"grants": grants}))
+                    change.update(path="/role-permissions/1", httpMethod="PUT", body=json.dumps({"grants": grants}))
                     change["pathParameters"] = {"role_id": "1"}
                     dal.replace.reset_mock()
                     self.assertEqual(manager.handler(change, None)["statusCode"], 200)
@@ -133,7 +133,7 @@ class PermissionEnforcementTests(unittest.TestCase):
         dal.identity.return_value = {"role_id": 1, "role_name": "guidance_counselor"}
         dal.permissions.return_value = {"permissions": ["read", "update"]}
         request = event()
-        request.update(path="/admin/permissions/roles/2", httpMethod="PUT", body='{"grants":[]}')
+        request.update(path="/role-permissions/2", httpMethod="PUT", body='{"grants":[]}')
         request["pathParameters"] = {"role_id": "2"}
         with patch.object(manager, "get_db_connection", return_value=conn), \
              patch.object(manager, "PermissionsDAL", return_value=dal), \

@@ -8,7 +8,7 @@
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.assessment_workload (
-  assessment_id uuid PRIMARY KEY REFERENCES public.assessments(id) ON DELETE CASCADE,
+  assessment_id bigint PRIMARY KEY REFERENCES public.assessments(id) ON DELETE CASCADE,
   assigned_admin_id uuid NOT NULL REFERENCES public.admins(id) ON DELETE RESTRICT,
   status text NOT NULL DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_review', 'completed')),
   assigned_at timestamptz NOT NULL DEFAULT now(),
