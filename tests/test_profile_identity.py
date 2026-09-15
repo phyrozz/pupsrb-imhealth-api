@@ -42,15 +42,17 @@ assessment_availability = importlib.import_module("services.assessments.get_asse
 post_confirmation = importlib.import_module("services.auth.post_confirmation")
 
 
-def authenticated_event(body=None):
+def authenticated_event(body=None, include_student_claim=True):
+    claims = {
+        "sub": "cognito-subject-that-is-not-a-profile-id",
+        "email": "Student@Example.edu",
+        "email_verified": "true",
+    }
+    if include_student_claim:
+        claims["custom:is_student"] = "true"
     return {
         "body": json.dumps(body or {}),
-        "requestContext": {"authorizer": {"claims": {
-            "sub": "cognito-subject-that-is-not-a-profile-id",
-            "email": "Student@Example.edu",
-            "email_verified": "true",
-            "custom:is_student": "true",
-        }}},
+        "requestContext": {"authorizer": {"claims": claims}},
     }
 
 
@@ -108,6 +110,32 @@ class ProfileIdentityTests(unittest.TestCase):
         self.assertEqual(saved["user_id"], "internal-profile-id")
         self.assertEqual(saved["email"], "student@example.edu")
         self.assertNotEqual(saved["user_id"], "cognito-subject-that-is-not-a-profile-id")
+
+    def test_student_routes_do_not_depend_on_custom_student_claim(self):
+        self.details.create.return_value = {"user_id": "internal-profile-id"}
+        self.details.update_by_user_id.return_value = {"user_id": "internal-profile-id"}
+        self.assessments.create_assessment.return_value = {"assessment": {"id": 1}}
+        personal_details = {
+            "first_name": "Ada", "last_name": "Lovelace", "student_number": "2021-12345-AB-0",
+            "birth_date": "2000-01-01", "year": 1,
+        }
+
+        create_response = create_details.handler(
+            authenticated_event(personal_details, include_student_claim=False), None
+        )
+        update_response = update_details.handler(
+            authenticated_event({"year": 2}, include_student_claim=False), None
+        )
+        assessment_response = submit_assessment.handler(
+            authenticated_event({"responses": [0] * 23}, include_student_claim=False), None
+        )
+
+        self.assertEqual(create_response["statusCode"], 201)
+        self.assertEqual(update_response["statusCode"], 200)
+        self.assertEqual(assessment_response["statusCode"], 201)
+        self.details.create.assert_called_once()
+        self.details.update_by_user_id.assert_called_once_with("internal-profile-id", {"year": 2})
+        self.assessments.create_assessment.assert_called_once()
 
     def test_personal_details_returns_retryable_error_when_profile_is_missing(self):
         self.profile.ensure_email_profile.return_value = None

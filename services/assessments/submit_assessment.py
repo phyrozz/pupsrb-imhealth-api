@@ -4,7 +4,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from utils.request import is_student
 from utils.db import get_db_connection
 from utils.response import success, error
 from utils.request import get_authenticated_username, get_body, get_cognito_user_id
@@ -81,8 +80,6 @@ def handler(event, context):
     username = get_authenticated_username(event)
     if not user_id or not username:
         return error("Unauthorized", 401)
-    if not is_student(event):
-        return error("Forbidden", 403)
     body = get_body(event)
     responses = body.get("responses", [])
     if len(responses) != 23:

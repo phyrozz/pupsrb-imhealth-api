@@ -124,10 +124,11 @@ class AssessmentsDAL(BaseDAL):
     def get_apriori_result(self, assessment_id, user_id, admin=False):
         return self._fetch_one(
             """
-            SELECT ar.*, s.name AS scenario_name, cs.name AS counseling_status
-            FROM apriori_results ar
-            JOIN assessment_scenarios s ON s.id = ar.apriori_result
-            LEFT JOIN counseling_statuses cs ON cs.id = ar.counseling_status_id
+            SELECT ar.*, a.responses, s.name AS scenario_name, cs.name AS counseling_status
+            FROM public.apriori_results ar
+            JOIN public.assessments a ON a.id = ar.assessment_id
+            JOIN public.assessment_scenarios s ON s.id = ar.apriori_result
+            LEFT JOIN public.counseling_statuses cs ON cs.id = ar.counseling_status_id
             WHERE ar.assessment_id = %s AND (%s OR ar.user_id = %s)
             """,
             (assessment_id, admin, user_id),
