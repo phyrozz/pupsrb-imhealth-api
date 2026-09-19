@@ -100,6 +100,25 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.config.studentAuthorizerId}
 
+  getPersonalDetails:
+    handler: get_personal_details.handler
+    events:
+      - http:
+          path: /students/personal-details
+          method: get
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.studentAuthorizerId}
+
   updatePersonalDetails:
     handler: update_personal_details.handler
     events:
@@ -125,6 +144,25 @@ functions:
       - http:
           path: /students/import
           method: post
+          cors:
+            origin: ${self:custom.config.corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
+
+  updateStudent:
+    handler: update_student.handler
+    events:
+      - http:
+          path: /students/{user_id}
+          method: put
           cors:
             origin: ${self:custom.config.corsOrigin}
             headers:
