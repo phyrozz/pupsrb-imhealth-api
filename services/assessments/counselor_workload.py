@@ -12,6 +12,8 @@ from utils.response import error, success
 
 VALID_SCOPES = {"mine", "unassigned", "all"}
 VALID_STATUSES = {"assigned", "in_review", "completed"}
+DEFAULT_PAGE_SIZE = 30
+MAX_PAGE_SIZE = 100
 
 
 def _assessment_id(event):
@@ -34,15 +36,24 @@ def _workload_identity(event, conn, permission):
 def list_handler(event, context):
     conn = None
     try:
+        query = event.get("queryStringParameters") or {}
+        try:
+            page = int(query.get("page") or 1)
+            page_size = int(query.get("page_size") or DEFAULT_PAGE_SIZE)
+        except (TypeError, ValueError):
+            return error("Invalid workload pagination", 400)
+        if page < 1 or page_size < 1 or page_size > MAX_PAGE_SIZE:
+            return error("Invalid workload pagination", 400)
         conn = get_db_connection()
         identity, denied = _workload_identity(event, conn, "read")
         if denied:
             return denied
-        scope = str((event.get("queryStringParameters") or {}).get("scope") or "mine")
+        scope = str(query.get("scope") or "mine")
         if scope not in VALID_SCOPES or (scope == "all" and identity["role_name"] != "su_admin"):
             return error("Invalid or unauthorized workload scope", 400)
         dal = CounselorWorkloadDAL(conn)
-        payload = {"items": [dict(row) for row in dal.list_items(identity["admin_id"], scope)]}
+        rows = dal.list_items(identity["admin_id"], scope, page, page_size)
+        payload = {"items": [dict(row) for row in rows[:page_size]], "has_more": len(rows) > page_size}
         if identity["role_name"] == "su_admin":
             payload["counselors"] = [dict(row) for row in dal.counselors()]
         return success(payload)

@@ -38,8 +38,30 @@ class WorkloadHandlerTests(unittest.TestCase):
         with patch.object(workload, "get_db_connection", return_value=conn), patch.object(workload, "_workload_identity", return_value=(identity, None)), patch.object(workload, "CounselorWorkloadDAL", return_value=dal):
             response = workload.list_handler(self.event(scope="mine"), None)
         self.assertEqual(response["statusCode"], 200)
-        dal.list_items.assert_called_once_with(COUNSELOR_ID, "mine")
+        dal.list_items.assert_called_once_with(COUNSELOR_ID, "mine", 1, 30)
         conn.close.assert_called_once()
+
+    def test_page_returns_only_requested_items_and_has_more(self):
+        conn, dal = Mock(), Mock()
+        dal.list_items.return_value = [{"assessment_id": i} for i in range(3)]
+        identity = {"admin_id": COUNSELOR_ID, "role_id": 1, "role_name": "guidance_counselor"}
+        event = self.event()
+        event["queryStringParameters"].update({"page": "2", "page_size": "2"})
+        with patch.object(workload, "get_db_connection", return_value=conn), patch.object(workload, "_workload_identity", return_value=(identity, None)), patch.object(workload, "CounselorWorkloadDAL", return_value=dal):
+            response = workload.list_handler(event, None)
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(len(body["items"]), 2)
+        self.assertTrue(body["has_more"])
+        dal.list_items.assert_called_once_with(COUNSELOR_ID, "mine", 2, 2)
+
+    def test_invalid_pagination_rejected_before_database_access(self):
+        for page, page_size in [("0", "30"), ("1", "0"), ("1", "101"), ("bad", "30")]:
+            event = self.event()
+            event["queryStringParameters"].update({"page": page, "page_size": page_size})
+            with self.subTest(page=page, page_size=page_size), patch.object(workload, "get_db_connection", side_effect=forbidden):
+                response = workload.list_handler(event, None)
+                self.assertEqual(response["statusCode"], 400)
 
     def test_counselor_cannot_read_everyone_workload(self):
         conn = Mock()
@@ -72,6 +94,26 @@ class WorkloadHandlerTests(unittest.TestCase):
         dal.manage(ASSESSMENT_ID, COUNSELOR_ID, "assigned")
         query = dal._execute_write.call_args.args[0]
         self.assertIn("role.role_name = 'guidance_counselor'", query)
+
+    def test_workload_trend_is_computed_before_scope_and_prioritized(self):
+        from generic_dals.counselor_workload_dal import CounselorWorkloadDAL
+        dal = CounselorWorkloadDAL.__new__(CounselorWorkloadDAL)
+        dal._fetch_all = Mock(return_value=[])
+        dal.list_items(COUNSELOR_ID, "mine")
+        query, params = dal._fetch_all.call_args.args
+        self.assertEqual(params, (COUNSELOR_ID, 31, 0))
+        self.assertIn("LAG(ar.apriori_result) OVER", query)
+        self.assertIn("PARTITION BY a.user_id ORDER BY a.created_at, a.id", query)
+        self.assertLess(query.index("FROM public.assessments a"), query.index("WHERE w.assigned_admin_id = %s"))
+        self.assertIn("a.scenario_id > a.previous_scenario_id", query)
+        self.assertIn("previous_s.name AS previous_scenario", query)
+        self.assertIn("COALESCE(pd.email, p.username, '') AS email", query)
+        self.assertIn("COALESCE(program.initial, '') AS program_initial", query)
+        self.assertIn("COALESCE(marital_status.status, '') AS marital_status", query)
+        self.assertIn("ORDER BY scenario_increased DESC, a.created_at ASC, a.id ASC", query)
+        self.assertIn("LIMIT %s OFFSET %s", query)
+        dal.list_items(COUNSELOR_ID, "unassigned", 3, 20)
+        self.assertEqual(dal._fetch_all.call_args.args[1], (21, 40))
 
     def tearDown(self):
         pg.connect.assert_not_called()
