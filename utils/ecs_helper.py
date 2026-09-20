@@ -33,15 +33,20 @@ class ECSHelper:
         self.region = os.environ.get("AWS_REGION", "ap-southeast-1")
         self.ecs = boto3.client("ecs", region_name=self.region)
 
-    def run_task(self, container_name: str, event: Optional[dict] = None) -> None:
+    def run_task(
+        self,
+        container_name: str,
+        event: Optional[dict] = None,
+        pass_environment: bool = True,
+    ) -> dict:
         if not self.cluster or not self.task_definition or not self.subnets:
             raise ValueError("CLUSTER, TASK_DEFINITION, and at least one SUBNETS value must be set")
 
-        env_vars = {k: v for k, v in os.environ.items() if v is not None}
+        env_vars = {k: v for k, v in os.environ.items() if v is not None} if pass_environment else {}
         if event is not None:
             env_vars["TASK_EVENT"] = json.dumps(event, separators=(",", ":"), ensure_ascii=False)
 
-        self.ecs.run_task(
+        response = self.ecs.run_task(
             cluster=self.cluster,
             taskDefinition=self.task_definition,
             launchType="FARGATE",
@@ -60,3 +65,8 @@ class ECSHelper:
                 }]
             },
         )
+        if not isinstance(response, dict):
+            raise RuntimeError("ECS task did not start")
+        if response.get("failures") or len(response.get("tasks") or []) != 1:
+            raise RuntimeError("ECS task did not start")
+        return response
