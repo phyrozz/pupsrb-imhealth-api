@@ -12,7 +12,8 @@ Replace `{stage}` with `dev` or `prod`.
 | `/pupsrb-imhealth/{stage}/db/name` | Database name |
 | `/pupsrb-imhealth/{stage}/db/user` | Database user |
 | `/pupsrb-imhealth/{stage}/db/password` | Database password |
-| `/pupsrb-imhealth/{stage}/s3/bucket_name` | S3 bucket name for avatars |
+| `/pupsrb-imhealth/{stage}/s3/bucket_name` | Private S3 bucket for avatars |
+| `/pupsrb-imhealth/{stage}/s3/public_bucket_name` | Public S3 bucket containing the `logo.webp` email image |
 | `/pupsrb-imhealth/{stage}/cognito/user_pool_id` | Cognito User Pool ID |
 | `/pupsrb-imhealth/{stage}/ses/from_email` | SES sender email address |
 | `/pupsrb-imhealth/{stage}/cron/secret` | Secret token for cron authorization |

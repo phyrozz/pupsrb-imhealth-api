@@ -1,0 +1,12 @@
+# VS Code REST Client request for the development API.
+# Define IMHEALTH_DEV_API_BASE_URL and IMHEALTH_DEV_COGNITO_ID_TOKEN in a local
+# .env file (do not commit the token). The base URL should include the /dev stage.
+# This GET starts the ECS assessment worker, which can send real email notifications.
+
+@baseUrl = {{$dotenv IMHEALTH_DEV_API_BASE_URL}}
+@idToken = {{$dotenv IMHEALTH_DEV_COGNITO_ID_TOKEN}}
+
+### Start the scheduled assessment availability worker
+GET {{baseUrl}}/schedule-assessment/task-runner
+Authorization: Bearer {{idToken}}
+Accept: application/json

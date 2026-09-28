@@ -9,6 +9,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from generic_dals.schedule_assessment_dal import ScheduleAssessmentDAL
 from utils.assessment_settings import get_positive_integer
+from utils.assessment_email_template import (
+    assessment_login_url,
+    brand_assessment_email_text,
+    render_assessment_email_html,
+)
 from utils.db import get_db_connection
 
 
@@ -16,13 +21,16 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def send_email(ses, from_email, to_email, subject, body_text):
+def send_email(ses, from_email, to_email, subject, body_text, body_html):
     ses.send_email(
         Source=from_email,
         Destination={"ToAddresses": [to_email]},
         Message={
             "Subject": {"Data": subject},
-            "Body": {"Text": {"Data": body_text}},
+            "Body": {
+                "Text": {"Data": brand_assessment_email_text(body_text)},
+                "Html": {"Data": body_html, "Charset": "UTF-8"},
+            },
         },
     )
 
@@ -50,13 +58,25 @@ def send_assessment_availability_notifications(conn, batch_size=100):
             cursor = (user["last_assessment_at"], user["user_id"])
             try:
                 first_name = user["first_name"] or "there"
+                body_text = (
+                    f"Hi {first_name},\n\nYou can now complete your next mental health assessment at "
+                    f"{assessment_login_url(app_url)}.\n\nThank you for taking care of your wellbeing."
+                )
                 send_email(
                     ses,
                     from_email,
                     user["email"],
                     "Your iMHealth assessment is available",
-                    f"Hi {first_name},\n\nYou can now complete your next mental health assessment at "
-                    f"{app_url}.\n\nThank you for taking care of your wellbeing.",
+                    body_text,
+                    render_assessment_email_html(
+                        first_name,
+                        [
+                            "You can now complete your next mental health assessment.",
+                            "Thank you for taking care of your wellbeing.",
+                        ],
+                        "Answer assessment form",
+                        assessment_login_url(app_url),
+                    ),
                 )
                 dal.mark_assessment_availability_notification_sent(
                     user["user_id"], user["last_assessment_at"]

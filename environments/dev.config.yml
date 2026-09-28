@@ -30,6 +30,7 @@ environment:
   DB_USER: ${ssm:/pupsrb-imhealth/dev/db/user}
   DB_PASSWORD: ${ssm:/pupsrb-imhealth/dev/db/password}
   S3_BUCKET_NAME: ${ssm:/pupsrb-imhealth/dev/s3/bucket_name}
+  S3_PUBLIC_BUCKET_NAME: ${ssm:/pupsrb-imhealth/dev/s3/public_bucket_name}
   SES_FROM_EMAIL: ${ssm:/pupsrb-imhealth/dev/ses/from_email}
   CRON_SECRET: ${ssm:/pupsrb-imhealth/dev/cron/secret}
   APP_URL: https://pupsrb-imhealth.vercel.app

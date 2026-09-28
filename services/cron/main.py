@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 import boto3
 
 from generic_dals.cron_dal import CronDAL
+from utils.assessment_email_template import (
+    assessment_login_url,
+    brand_assessment_email_text,
+    render_assessment_email_html,
+)
 from utils.db import get_db_connection
 
 
@@ -14,13 +19,16 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def send_email(ses, from_email, to_email, subject, body_text):
+def send_email(ses, from_email, to_email, subject, body_text, body_html):
     ses.send_email(
         Source=from_email,
         Destination={"ToAddresses": [to_email]},
         Message={
             "Subject": {"Data": subject},
-            "Body": {"Text": {"Data": body_text}},
+            "Body": {
+                "Text": {"Data": brand_assessment_email_text(body_text)},
+                "Html": {"Data": body_html, "Charset": "UTF-8"},
+            },
         },
     )
 
@@ -53,13 +61,23 @@ def send_reminder_emails(conn):
 
     for user in dal.get_assessment_reminder_users():
         try:
+            first_name = user.get("first_name") or "there"
             send_email(
                 ses,
                 from_email,
                 user["email"],
                 "Time for your monthly mental health assessment",
-                f"Hi {user['first_name']},\n\nIt's been a while since your last assessment. "
-                f"Please take a few minutes to complete it at {app_url}.\n\nThank you.",
+                f"Hi {first_name},\n\nIt's been a while since your last assessment. "
+                f"Please take a few minutes to complete it at {assessment_login_url(app_url)}.\n\nThank you.",
+                render_assessment_email_html(
+                    first_name,
+                    [
+                        "It's been a while since your last assessment. Please take a few minutes to complete it.",
+                        "Thank you.",
+                    ],
+                    "Answer assessment form",
+                    assessment_login_url(app_url),
+                ),
             )
             dal.mark_assessment_reminder_sent(user["user_id"])
         except Exception as e:
@@ -67,13 +85,23 @@ def send_reminder_emails(conn):
 
     for user in dal.get_unanswered_assessment_users():
         try:
+            first_name = user.get("first_name") or "there"
             send_email(
                 ses,
                 from_email,
                 user["email"],
                 "Complete your first mental health assessment",
-                f"Hi {user['first_name']},\n\nYou haven't completed a mental health assessment yet. "
-                f"Please take a moment to do so at {app_url}.\n\nThank you.",
+                f"Hi {first_name},\n\nYou haven't completed a mental health assessment yet. "
+                f"Please take a moment to do so at {assessment_login_url(app_url)}.\n\nThank you.",
+                render_assessment_email_html(
+                    first_name,
+                    [
+                        "You haven't completed a mental health assessment yet. Please take a moment to do so.",
+                        "Thank you.",
+                    ],
+                    "Answer assessment form",
+                    assessment_login_url(app_url),
+                ),
             )
             dal.mark_unanswered_reminder_sent(user["user_id"])
         except Exception as e:

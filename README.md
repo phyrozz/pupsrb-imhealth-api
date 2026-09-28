@@ -111,10 +111,14 @@ The scripts read the existing development task execution and task role ARNs from
 ```
 
 Each ECS service needs `services/<name>/Dockerfile` and
-`services/<name>/ecs-task-definition.json`. The schedule-assessment template supplies database
-and SES values to the container through SSM parameter references; the supplied
-execution role must be allowed to read those parameters, and its task role must
-allow SES delivery. Its logs are sent to `/ecs/pupsrb-imhealth-schedule-assessment-dev`.
+`services/<name>/ecs-task-definition.json`. The schedule-assessment template supplies database,
+private and public S3 bucket names, and SES values to the container through SSM parameter
+references; the supplied execution role must be allowed to read those parameters. Each email-sending
+role (the assessment Lambda execution role and the cron and schedule-assessment ECS task roles) must
+allow SES delivery.
+The email template loads `logo.webp` from the public bucket configured by
+`S3_PUBLIC_BUCKET_NAME`; the private `S3_BUCKET_NAME` remains for avatar storage. The
+schedule-assessment logs are sent to `/ecs/pupsrb-imhealth-schedule-assessment-dev`.
 
 ## AWS Services Used
 
@@ -135,7 +139,8 @@ Each service reads from Lambda environment variables:
 | `DB_NAME` | Database name |
 | `DB_USER` | Database user |
 | `DB_PASSWORD` | Database password |
-| `S3_BUCKET_NAME` | S3 bucket for avatars |
+| `S3_BUCKET_NAME` | Private S3 bucket for avatars |
+| `S3_PUBLIC_BUCKET_NAME` | Public S3 bucket containing the `logo.webp` email image |
 | `COGNITO_USER_POOL_ID` | Cognito User Pool ID |
 | `SES_FROM_EMAIL` | Sender email address |
 | `CRON_SECRET` | Secret for cron authorization |

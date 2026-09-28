@@ -28,6 +28,8 @@
         { "name": "DB_NAME", "valueFrom": "/pupsrb-imhealth/dev/db/name" },
         { "name": "DB_USER", "valueFrom": "/pupsrb-imhealth/dev/db/user" },
         { "name": "DB_PASSWORD", "valueFrom": "/pupsrb-imhealth/dev/db/password" },
+        { "name": "S3_BUCKET_NAME", "valueFrom": "/pupsrb-imhealth/dev/s3/bucket_name" },
+        { "name": "S3_PUBLIC_BUCKET_NAME", "valueFrom": "/pupsrb-imhealth/dev/s3/public_bucket_name" },
         { "name": "SES_FROM_EMAIL", "valueFrom": "/pupsrb-imhealth/dev/ses/from_email" }
       ]
     }
