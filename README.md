@@ -16,7 +16,7 @@ pupsrb-imhealth-api/
 │   ├── students/       # List, get, import CSV, personal details CRUD
 │   ├── assessments/    # Submit, list, apriori results, counseling status
 │   ├── dashboard/      # Stats, charts, trend data
-│   └── cron/           # Insert assessment trends, send reminder emails
+│   └── cron/           # Insert assessment trends (availability emails: schedule_assessment)
 └── requirements.txt
 ```
 
@@ -90,6 +90,12 @@ avoiding Lambda's 15-minute execution limit. The worker must be included in the
 EventBridge Lambda entry point is `services/schedule_assessment/task_runner.py`; the
 Fargate container entry point is `services/schedule_assessment/main.py`.
 
+The cron service snapshots cumulative increases and decreases between each student's
+consecutive assessment scenarios at **01:00 UTC** daily. Its EventBridge Lambda starts
+the Fargate task; the optional HTTP trigger requires the non-student Cognito authorizer.
+The worker uses the trend tables' baseline `count` and `created_at` columns and writes
+at most one snapshot per UTC day. It does not send assessment emails.
+
 ## ECS task deployment
 
 `deploy-ecs.ps1` and `deploy-ecs.sh` deploy an ECS task image for a service in
@@ -114,7 +120,7 @@ Each ECS service needs `services/<name>/Dockerfile` and
 `services/<name>/ecs-task-definition.json`. The schedule-assessment template supplies database,
 private and public S3 bucket names, and SES values to the container through SSM parameter
 references; the supplied execution role must be allowed to read those parameters. Each email-sending
-role (the assessment Lambda execution role and the cron and schedule-assessment ECS task roles) must
+role (the assessment Lambda execution role and the schedule-assessment ECS task role) must
 allow SES delivery.
 The email template loads `logo.webp` from the public bucket configured by
 `S3_PUBLIC_BUCKET_NAME`; the private `S3_BUCKET_NAME` remains for avatar storage. The
@@ -125,7 +131,7 @@ schedule-assessment logs are sent to `/ecs/pupsrb-imhealth-schedule-assessment-d
 - **Lambda + API Gateway** — API endpoints
 - **Cognito** — Authentication (triggers in `services/auth`)
 - **S3** — Profile avatar storage
-- **SES / Resend** — Transactional emails (cron reminders, status updates)
+- **SES / Resend** — Transactional emails (assessment availability, status updates)
 - **RDS / PostgreSQL** — Direct DB connection (replaces Supabase API)
 
 ## Environment Variables
@@ -143,7 +149,6 @@ Each service reads from Lambda environment variables:
 | `S3_PUBLIC_BUCKET_NAME` | Public S3 bucket containing the `logo.webp` email image |
 | `COGNITO_USER_POOL_ID` | Cognito User Pool ID |
 | `SES_FROM_EMAIL` | Sender email address |
-| `CRON_SECRET` | Secret for cron authorization |
 
 ## Deployment
 

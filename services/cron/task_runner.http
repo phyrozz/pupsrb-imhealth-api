@@ -1,0 +1,13 @@
+# VS Code REST Client request for the development API.
+# Define IMHEALTH_DEV_API_BASE_URL and IMHEALTH_DEV_COGNITO_ID_TOKEN in a local
+# .env file (do not commit the token). The base URL should include the /dev stage.
+# This POST starts an ECS task and writes today's mental health trend snapshot.
+
+@baseUrl = {{$dotenv IMHEALTH_DEV_API_BASE_URL}}
+@idToken = {{$dotenv IMHEALTH_DEV_COGNITO_ID_TOKEN}}
+
+### Start the mental health trend snapshot task
+POST {{baseUrl}}/task-runner
+Authorization: {{idToken}}
+Content-Type: application/json
+Accept: application/json

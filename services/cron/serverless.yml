@@ -28,19 +28,23 @@ package:
     - "../../generic_dals/**"
 
 functions:
+  scheduledTrendSnapshot:
+    handler: task_runner.scheduled_handler
+    description: Starts the daily mental health trend snapshot task
+    timeout: 30
+    events:
+      - schedule:
+          rate: cron(0 1 * * ? *)
+          enabled: true
+
   taskRunner:
     handler: task_runner.handler
     description: Triggers ECS Fargate task to run cron business logic
+    timeout: 30
     events:
       - http:
           path: /task-runner
           method: post
-          cors:
-            origin: ${self:custom.config.corsOrigin}
-            headers:
-              - Content-Type
-              - Authorization
-              - X-Amz-Date
-              - X-Api-Key
-              - X-Amz-Security-Token
-            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.config.authorizerId}
